@@ -16,24 +16,23 @@ def limpiar():
     st.session_state.expr = ""
 
 # ---------------------------
-# Variables válidas
+# EXTRAER SOLO A, B, C, D (FIX DEFINITIVO)
 # ---------------------------
 def extraer_variables(expr):
-    variables_validas = ["A", "B", "C", "D"]
     expr = expr.upper()
-    return sorted(set([v for v in variables_validas if v in expr]))
+    variables_validas = {"A", "B", "C", "D"}
+    tokens = set(re.findall(r'\b[A-Z]\b', expr))
+    return sorted(tokens.intersection(variables_validas))
 
 # ---------------------------
-# Traducción a Python (FIX REAL)
+# TRADUCCIÓN SEGURA A PYTHON
 # ---------------------------
 def traducir_expresion(expr):
     expr = expr.upper()
 
-    # bicondicional
-    expr = re.sub(r'(\w+)\s*<->\s*(\w+)', r'(\1 == \2)', expr)
-
-    # condicional
-    expr = re.sub(r'(\w+)\s*->\s*(\w+)', r'(not \1 or \2)', expr)
+    # operadores avanzados
+    expr = re.sub(r'(\b[A-D]\b)\s*<->\s*(\b[A-D]\b)', r'(\1 == \2)', expr)
+    expr = re.sub(r'(\b[A-D]\b)\s*->\s*(\b[A-D]\b)', r'(not \1 or \2)', expr)
 
     # operadores básicos
     expr = expr.replace("AND", " and ")
@@ -44,7 +43,7 @@ def traducir_expresion(expr):
     return expr
 
 # ---------------------------
-# Evaluación segura
+# EVALUACIÓN SEGURA
 # ---------------------------
 def evaluar(expr, valores):
     try:
@@ -53,7 +52,7 @@ def evaluar(expr, valores):
         raise ValueError(f"Error en la expresión lógica: {e}")
 
 # ---------------------------
-# Tabla de verdad
+# TABLA DE VERDAD
 # ---------------------------
 def generar_tabla(expr):
     if not expr.strip():
@@ -62,7 +61,7 @@ def generar_tabla(expr):
     variables = extraer_variables(expr)
 
     if len(variables) == 0:
-        raise ValueError("Usa al menos A, B, C o D")
+        raise ValueError("Usa solo A, B, C o D")
 
     expr_py = traducir_expresion(expr)
 
@@ -70,7 +69,7 @@ def generar_tabla(expr):
 
     filas = []
     for comb in combinaciones:
-        valores = dict(zip(variables, comb))  # 0/1 directo (IMPORTANTE)
+        valores = dict(zip(variables, comb))
         resultado = evaluar(expr_py, valores)
         filas.append(list(comb) + [resultado])
 
@@ -81,8 +80,6 @@ def generar_tabla(expr):
 # UI
 # ---------------------------
 st.title("🧠 Calculadora de Tablas de Verdad")
-
-st.subheader("Construye la expresión")
 
 col1, col2, col3 = st.columns(3)
 
@@ -108,10 +105,8 @@ with col3:
     if st.button(")"): agregar(")")
     if st.button("Limpiar"): limpiar()
 
-# Mostrar expresión
 st.text_input("Expresión lógica:", st.session_state.expr)
 
-# Generar tabla
 if st.button("Generar tabla"):
     try:
         df = generar_tabla(st.session_state.expr)
