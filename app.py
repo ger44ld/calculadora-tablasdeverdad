@@ -10,7 +10,7 @@ if "expr" not in st.session_state:
     st.session_state.expr = ""
 
 # ---------------------------
-# Función para agregar texto
+# Funciones de UI
 # ---------------------------
 def agregar(token):
     st.session_state.expr += token + " "
@@ -29,10 +29,19 @@ def extraer_variables(expr):
 # ---------------------------
 def traducir_expresion(expr):
     expr = expr.upper()
+
+    # Bicondicional
+    expr = re.sub(r'(\w+)\s*<->\s*(\w+)', r'(\1 == \2)', expr)
+
+    # Condicional
+    expr = re.sub(r'(\w+)\s*->\s*(\w+)', r'((not \1) or \2)', expr)
+
+    # Operadores básicos
     expr = expr.replace("AND", "and")
     expr = expr.replace("OR", "or")
     expr = expr.replace("NOT", "not")
     expr = expr.replace("XOR", "^")
+
     return expr
 
 # ---------------------------
@@ -73,19 +82,27 @@ st.title("Calculadora de Tablas de Verdad")
 
 st.subheader("Construye la expresión lógica")
 
+# Columnas de botones
 col1, col2, col3 = st.columns(3)
 
+# Variables
 with col1:
     if st.button("A"): agregar("A")
     if st.button("B"): agregar("B")
     if st.button("C"): agregar("C")
+    if st.button("D"): agregar("D")
 
+# Operadores lógicos
 with col2:
     if st.button("AND"): agregar("AND")
     if st.button("OR"): agregar("OR")
     if st.button("NOT"): agregar("NOT")
+    if st.button("XOR"): agregar("XOR")
 
+# Operadores avanzados y control
 with col3:
+    if st.button("→"): agregar("->")
+    if st.button("↔"): agregar("<->")
     if st.button("("): agregar("(")
     if st.button(")"): agregar(")")
     if st.button("Limpiar"): limpiar()
