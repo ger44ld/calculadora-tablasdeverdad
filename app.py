@@ -4,14 +4,11 @@ import pandas as pd
 import re
 
 # ---------------------------
-# Estado inicial
+# Estado
 # ---------------------------
 if "expr" not in st.session_state:
     st.session_state.expr = ""
 
-# ---------------------------
-# Funciones UI
-# ---------------------------
 def agregar(token):
     st.session_state.expr += token + " "
 
@@ -19,30 +16,30 @@ def limpiar():
     st.session_state.expr = ""
 
 # ---------------------------
-# Extraer variables (CORREGIDO)
+# Variables válidas
 # ---------------------------
 def extraer_variables(expr):
-    variables_validas = ['A', 'B', 'C', 'D']
+    variables_validas = ["A", "B", "C", "D"]
     expr = expr.upper()
     return sorted(set([v for v in variables_validas if v in expr]))
 
 # ---------------------------
-# Traducir expresión
+# Traducción a Python (FIX REAL)
 # ---------------------------
 def traducir_expresion(expr):
     expr = expr.upper()
 
-    # Bicondicional
+    # bicondicional
     expr = re.sub(r'(\w+)\s*<->\s*(\w+)', r'(\1 == \2)', expr)
 
-    # Condicional
-    expr = re.sub(r'(\w+)\s*->\s*(\w+)', r'((not \1) or \2)', expr)
+    # condicional
+    expr = re.sub(r'(\w+)\s*->\s*(\w+)', r'(not \1 or \2)', expr)
 
-    # Operadores básicos
-    expr = expr.replace("AND", "and")
-    expr = expr.replace("OR", "or")
-    expr = expr.replace("NOT", "not")
-    expr = expr.replace("XOR", "^")
+    # operadores básicos
+    expr = expr.replace("AND", " and ")
+    expr = expr.replace("OR", " or ")
+    expr = expr.replace("NOT", " not ")
+    expr = expr.replace("XOR", " != ")
 
     return expr
 
@@ -52,11 +49,11 @@ def traducir_expresion(expr):
 def evaluar(expr, valores):
     try:
         return int(eval(expr, {"__builtins__": None}, valores))
-    except Exception:
-        raise ValueError("Error en la expresión lógica")
+    except Exception as e:
+        raise ValueError(f"Error en la expresión lógica: {e}")
 
 # ---------------------------
-# Generar tabla
+# Tabla de verdad
 # ---------------------------
 def generar_tabla(expr):
     if not expr.strip():
@@ -65,17 +62,16 @@ def generar_tabla(expr):
     variables = extraer_variables(expr)
 
     if len(variables) == 0:
-        raise ValueError("No hay variables válidas (usa A, B, C o D)")
+        raise ValueError("Usa al menos A, B, C o D")
 
-    expr_traducida = traducir_expresion(expr)
+    expr_py = traducir_expresion(expr)
 
     combinaciones = list(itertools.product([0, 1], repeat=len(variables)))
 
     filas = []
     for comb in combinaciones:
-        valores = dict(zip(variables, comb))
-        valores_bool = {k: bool(v) for k, v in valores.items()}
-        resultado = evaluar(expr_traducida, valores_bool)
+        valores = dict(zip(variables, comb))  # 0/1 directo (IMPORTANTE)
+        resultado = evaluar(expr_py, valores)
         filas.append(list(comb) + [resultado])
 
     columnas = variables + ["Resultado"]
@@ -84,9 +80,9 @@ def generar_tabla(expr):
 # ---------------------------
 # UI
 # ---------------------------
-st.title("Calculadora de Tablas de Verdad")
+st.title("🧠 Calculadora de Tablas de Verdad")
 
-st.subheader("Construye la expresión lógica")
+st.subheader("Construye la expresión")
 
 col1, col2, col3 = st.columns(3)
 
@@ -104,7 +100,7 @@ with col2:
     if st.button("NOT"): agregar("NOT")
     if st.button("XOR"): agregar("XOR")
 
-# Avanzados + control
+# Avanzados
 with col3:
     if st.button("→"): agregar("->")
     if st.button("↔"): agregar("<->")
